@@ -2,4 +2,4 @@
 pub mod balancer;
 pub mod config;
 pub mod health;
-pub mod server; 
+pub mod server;
