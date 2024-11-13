@@ -2,8 +2,8 @@
 name = "rust_load_balancer"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
-description = "A high-performance load balancer written in Rust"
+authors = ["Richard Xue : xrichard@seas.upenn.edu, Vedansh Goenka : vedanshg@seas.upenn.edu"]
+description = "A high-performance load balancer written in Rust, for CIS1905 24 Fall Semester"
 
 [dependencies]
 tokio = { version = "1.28", features = ["full"] }
