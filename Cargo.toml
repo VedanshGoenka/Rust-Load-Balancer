@@ -7,9 +7,9 @@ authors = [
 ]
 description = "A high-performance load balancer written in Rust, for CIS1905 24 Fall Semester"
 
-[[bin]]
-name = "generator"
-path = "src/generator/generator.rs"
+# [[bin]]
+# name = "generator"
+# path = "src/generator.rs"
 
 [dependencies]
 rand = "0.8.5"

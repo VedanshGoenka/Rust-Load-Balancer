@@ -1,15 +1,15 @@
 #!/bin/bash
 
 usage() {
-  echo "Usage: $0 --url <url> --clients <num_clients> --ratio <read_write_ratio>"
+  echo "Usage: $0 --url <url> --num-clients <num_clients> --read-write-ratio <read_write_ratio>"
   echo "  --url       The server URL to send requests to."
-  echo "  --clients   The number of clients to simulate."
-  echo "  --ratio     The read/write request ratio, in .% scale (e.g. 0.5, 1.0)"
+  echo "  --num-clients   The number of clients to simulate."
+  echo "  --read-write_ratio     The read/write request ratio, in .% scale (e.g. 0.5, 1.0)"
   exit 1
 }
 
 # Default Args
-URL=""
+URL="http://localhost:8000/"
 NUM_CLIENTS=10
 READ_WRITE_RATIO=0.5
 
@@ -31,4 +31,4 @@ if [[ -z "$URL" ]]; then
   usage
 fi
 
-cargo run --bin generator -- --url "$URL" --num_clients "$NUM_CLIENTS" --read_write_ratio "$READ_WRITE_RATIO"
+cargo run -- --url "$URL" --num-clients "$NUM_CLIENTS" --read-write-ratio "$READ_WRITE_RATIO"

@@ -3,19 +3,19 @@ use clap::Parser;
 use tokio::task;
 #[derive(Parser, Debug)]
 #[command(name = "Request Generator")]
-pub struct Args {
+pub struct GeneratorArgs {
     // url of Load Balancer/Server to send requests to
     // Passed to each SenderClient
     #[arg(short, long)]
-    url: String,
+    pub url: String,
 
     // Number of SenderClients
     #[arg(short, long, default_value = "10")]
-    num_clients: usize,
+    pub num_clients: usize,
 
     // Ratio of Reads to Write Requests
     #[arg(short, long, default_value = "0.5")]
-    read_write_ratio: f64,
+    pub read_write_ratio: f64,
 }
 
 /**
@@ -80,7 +80,7 @@ impl Generator {
 
 #[tokio::main]
 async fn main() {
-    let args = Args::parse();
+    let args = GeneratorArgs::parse();
     let generator = Generator::new(&args.url, args.num_clients);
     println!("Beginning Generator...");
     std::sync::Arc::new(generator)
