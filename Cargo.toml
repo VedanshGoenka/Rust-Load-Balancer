@@ -2,7 +2,7 @@
 name = "rust_load_balancer"
 version = "0.1.0"
 edition = "2021"
-authors = ["Richard Xue : xrichard@seas.upenn.edu, Vedansh Goenka : vedanshg@seas.upenn.edu"]
+authors = ["Richard Xue <xrichard@seas.upenn.edu>", "Vedansh Goenka <vedanshg@seas.upenn.edu>"]
 description = "A high-performance load balancer written in Rust, for CIS1905 24 Fall Semester"
 
 [dependencies]
