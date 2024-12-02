@@ -50,10 +50,18 @@ impl Generator {
                     // Determine if Read or Write
                     let is_read = rand::random::<f64>() < read_write_ratio;
 
+                    // Start timing
+                    let start_time = std::time::Instant::now();
+
                     if is_read {
                         match client.get_read_request(&url).await {
                             Ok(_response) => {
-                                println!("Client {} Read Response", client.id)
+                                let duration = start_time.elapsed();
+                                println!(
+                                    "Client {} Read Response - Time: {:.2}ms",
+                                    client.id,
+                                    duration.as_secs_f64() * 1000.0
+                                )
                             }
                             Err(e) => eprintln!("Client {} Read Failed: {}", client.id, e),
                         }
@@ -61,7 +69,12 @@ impl Generator {
                         let body = format!("Client {} sending this Write with body", client.id);
                         match client.post_write_request(&url, body).await {
                             Ok(_response) => {
-                                println!("Client {} Write Response", client.id)
+                                let duration = start_time.elapsed();
+                                println!(
+                                    "Client {} Write Response - Time: {:.2}ms",
+                                    client.id,
+                                    duration.as_secs_f64() * 1000.0
+                                )
                             }
                             Err(e) => eprintln!("Client {} Write Failed: {}", client.id, e),
                         }
