@@ -82,7 +82,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             });
 
             // Wait for both tasks
-            let _ = tokio::try_join!(server_handle, generator_handle)?;
+            tokio::try_join!(server_handle, generator_handle)?;
         }
     }
 
