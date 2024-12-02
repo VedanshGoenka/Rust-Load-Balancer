@@ -23,7 +23,7 @@ pub struct GeneratorArgs {
  */
 pub struct Generator {
     client_list: Vec<SenderClient>,
-    url: String,
+    url: String
 }
 
 impl Generator {
@@ -35,11 +35,14 @@ impl Generator {
 
         Self {
             client_list,
-            url: url.to_string(),
+            url: url.to_string()
         }
     }
 
     pub async fn run(self: std::sync::Arc<Self>, read_write_ratio: f64) {
+        // Start overall timing
+        let total_start = std::time::Instant::now();
+
         let tasks: Vec<_> = self
             .client_list
             .iter()
@@ -87,7 +90,13 @@ impl Generator {
             let _ = task.await;
         }
 
+        // Calculate and print overall time
+        let total_elapsed = total_start.elapsed();
         println!("Finished all tasks!");
+        println!(
+            "Total time for all requests: {:.2}ms", 
+            total_elapsed.as_secs_f64() * 1000.0
+        );
     }
 }
 
