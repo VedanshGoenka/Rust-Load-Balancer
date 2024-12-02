@@ -5,10 +5,6 @@ edition = "2021"
 authors = ["Richard Xue <xrichard@seas.upenn.edu>", "Vedansh Goenka <vedanshg@seas.upenn.edu>"]
 description = "A high-performance load balancer written in Rust, for CIS1905 24 Fall Semester"
 
-# [[bin]]
-# name = "generator"
-# path = "src/generator.rs"
-
 [dependencies]
 rand = "0.8.5"
 tokio = { version = "1.28", features = ["full"] }
