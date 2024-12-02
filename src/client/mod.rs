@@ -1,5 +1,6 @@
 use reqwest::{Client, Error, Response};
 use std::sync::Arc;
+
 #[derive(Clone)]
 pub struct SenderClient {
     pub client: Arc<Client>,

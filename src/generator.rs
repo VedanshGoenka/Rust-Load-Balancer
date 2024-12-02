@@ -1,20 +1,20 @@
 use crate::client::SenderClient;
 use clap::Parser;
 use tokio::task;
+
 #[derive(Parser, Debug)]
 #[command(name = "Request Generator")]
 pub struct GeneratorArgs {
     // url of Load Balancer/Server to send requests to
-    // Passed to each SenderClient
-    #[arg(short, long)]
+    #[arg(short = 'u', long)]
     pub url: String,
 
     // Number of SenderClients
-    #[arg(short, long, default_value = "10")]
+    #[arg(short = 'n', long, default_value = "10")]
     pub num_clients: usize,
 
     // Ratio of Reads to Write Requests
-    #[arg(short, long, default_value = "0.5")]
+    #[arg(short = 'r', long, default_value = "0.5")]
     pub read_write_ratio: f64,
 }
 
@@ -52,7 +52,7 @@ impl Generator {
 
                     if is_read {
                         match client.get_read_request(&url).await {
-                            Ok(response) => {
+                            Ok(_response) => {
                                 println!("Client {} Read Response", client.id)
                             }
                             Err(e) => eprintln!("Client {} Read Failed: {}", client.id, e),
@@ -60,7 +60,7 @@ impl Generator {
                     } else {
                         let body = format!("Client {} sending this Write with body", client.id);
                         match client.post_write_request(&url, body).await {
-                            Ok(response) => {
+                            Ok(_response) => {
                                 println!("Client {} Write Response", client.id)
                             }
                             Err(e) => eprintln!("Client {} Write Failed: {}", client.id, e),
@@ -79,6 +79,7 @@ impl Generator {
 }
 
 #[tokio::main]
+#[allow(dead_code)]
 async fn main() {
     let args = GeneratorArgs::parse();
     let generator = Generator::new(&args.url, args.num_clients);
