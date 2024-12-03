@@ -7,7 +7,7 @@ use tokio::{
     sync::{RwLock, Semaphore},
 };
 
-const MAX_CONNECTIONS: usize = 200;
+const MAX_CONNECTIONS: usize = 500; // This affects the success rate of the requests
 
 pub struct LoadBalancer {
     port: u16,
