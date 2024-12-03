@@ -38,6 +38,41 @@ impl Generator {
         }
     }
 
+    async fn send_request(
+        client: SenderClient,
+        is_get: bool,
+        client_id: usize,
+        request_id: usize,
+        successful_requests: Arc<AtomicUsize>,
+    ) {
+        let result = if is_get {
+            client.get_read_request("").await
+        } else {
+            client
+                .post_write_request("", format!("test{}", client_id))
+                .await
+        };
+
+        match result {
+            Ok(_) => {
+                successful_requests.fetch_add(1, Ordering::Relaxed);
+                println!(
+                    "Client {} - {} request {} successful",
+                    client_id,
+                    if is_get { "GET" } else { "POST" },
+                    request_id
+                );
+            }
+            Err(e) => eprintln!(
+                "Client {} - {} request {} failed: {}",
+                client_id,
+                if is_get { "GET" } else { "POST" },
+                request_id,
+                e
+            ),
+        }
+    }
+
     pub async fn run(&self, num_requests: usize) {
         let successful_requests = Arc::new(AtomicUsize::new(0));
 
@@ -54,41 +89,24 @@ impl Generator {
         let mut all_futures = Vec::new();
 
         // Create all request futures upfront
-        for i in 0..self.num_clients {
+        for client_id in 0..self.num_clients {
             let successful_requests = Arc::clone(&successful_requests);
-            let client = SenderClient::new(&i.to_string(), &self.url);
+            let client = SenderClient::new(&client_id.to_string(), &self.url);
 
-            for j in 0..requests_per_client {
+            // Attempt to send request
+            for request_id in 0..requests_per_client {
                 let successful_requests = Arc::clone(&successful_requests);
-                let is_get = (j as f64 / requests_per_client as f64) < self.get_ratio;
+                let is_get = (request_id as f64 / requests_per_client as f64) < self.get_ratio;
                 let client = client.clone();
 
-                let future = tokio::spawn(async move {
-                    let result = if is_get {
-                        client.get_read_request("").await
-                    } else {
-                        client.post_write_request("", format!("test{}", i)).await
-                    };
+                let future = tokio::spawn(Self::send_request(
+                    client,
+                    is_get,
+                    client_id,
+                    request_id,
+                    successful_requests,
+                ));
 
-                    match result {
-                        Ok(_) => {
-                            successful_requests.fetch_add(1, Ordering::Relaxed);
-                            println!(
-                                "Client {} - {} request {} successful",
-                                i,
-                                if is_get { "GET" } else { "POST" },
-                                j
-                            )
-                        }
-                        Err(e) => eprintln!(
-                            "Client {} - {} request {} failed: {}",
-                            i,
-                            if is_get { "GET" } else { "POST" },
-                            j,
-                            e
-                        ),
-                    }
-                });
                 all_futures.push(future);
             }
         }
