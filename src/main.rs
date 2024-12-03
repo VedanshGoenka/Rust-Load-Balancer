@@ -14,6 +14,10 @@ enum Command {
 
         #[arg(short = 's', long = "servers", value_delimiter = ',')]
         servers: Vec<String>,
+
+        #[arg(short = 'a', long = "algorithm", default_value = "round-robin")]
+        #[arg(value_enum)]
+        algorithm: String,
     },
     #[command(name = "server")]
     Server {
@@ -36,9 +40,10 @@ enum Command {
 #[tokio::main]
 async fn main() {
     match Command::parse() {
-        Command::Balancer { port, servers } => {
+        Command::Balancer { port, servers, algorithm } => {
             println!("Starting load balancer on port {} with servers: {:?}", port, servers);
-            let balancer = LoadBalancer::new(port, servers);
+            println!("Using {} algorithm", algorithm);
+            let balancer = LoadBalancer::new(port, servers, &algorithm);
             balancer.run().await;
         }
         Command::Server { port, get_delay, post_delay } => {

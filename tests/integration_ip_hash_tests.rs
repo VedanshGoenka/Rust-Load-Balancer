@@ -1,4 +1,4 @@
-use rust_load_balancer::algorithms::{LoadBalancingAlgorithm, RoundRobin};
+use rust_load_balancer::algorithms::{IpHash, LoadBalancingAlgorithm};
 use rust_load_balancer::{balancer::LoadBalancer, generator::Generator, server::Server};
 
 use std::sync::Arc;
@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 use tokio::{time::timeout, time::Duration};
 
 #[tokio::test]
-async fn test_round_robin_no_timeout() {
+async fn test_round_ip_hash_no_timeout() {
     // Servers
     let server_port1 = 8001;
     let server_port2 = 8002;
@@ -28,7 +28,7 @@ async fn test_round_robin_no_timeout() {
         format!("127.0.0.1:{}", server_port1),
         format!("127.0.0.1:{}", server_port2),
     ];
-    let load_balancer = LoadBalancer::new(load_balancer_port, servers, "round-robin");
+    let load_balancer = LoadBalancer::new(load_balancer_port, servers, "ip-hash");
     let load_balancer_handle = tokio::spawn(async move {
         load_balancer.run().await;
     });
@@ -59,12 +59,12 @@ async fn test_round_robin_no_timeout() {
 }
 
 #[tokio::test]
-async fn test_round_robin_empty_server_list() {
+async fn test_round_ip_hash_empty_server_list() {
     let servers: Vec<String> = vec![];
-    let round_robin = RoundRobin::new();
+    let ip_hash = IpHash::new();
     let servers = Arc::new(RwLock::new(servers));
 
-    let next_server = round_robin.next_server(&servers.read().await).await;
+    let next_server = ip_hash.next_server(&servers.read().await).await;
 
     // No server should be next
     assert!(next_server.is_none());

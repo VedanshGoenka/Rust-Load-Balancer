@@ -1,148 +1,109 @@
 # Rust Load Balancer
 
-A high-performance HTTP load balancer implementation in Rust, featuring multiple balancing strategies and health checking capabilities.
+A high-performance HTTP load balancer implementation in Rust, featuring multiple load balancing strategies and detailed metrics tracking.
 
 ## Features
 
-- Multiple load balancing strategies:
-  - Round Robin
-  - Least Connections
-  - Weighted Round Robin
-- Health checking for backend servers
-- Configuration via JSON/YAML
+### Load Balancing Strategies
+
+- **Round Robin**: Simple rotation through servers with request distribution tracking
+- **Least Connections**: Routes based on active connection count with success rate monitoring
+- **Weighted Round Robin**: Supports server weights (random 1-10 if not specified) with distribution tracking
+- **IP Hash**: Consistent hashing based on client IP for session affinity
+
+### Metrics and Monitoring
+
+- Real-time metrics for each algorithm:
+  - Round Robin: Request counts and distribution percentages
+  - Least Connections: Active connections, total requests, success rates
+  - Weighted Round Robin: Server weights, request distribution
+  - IP Hash: Request distribution and IP mappings
+- Metrics accessible via HTTP endpoint (/metrics)
+- Automatic metrics display on shutdown
+
+### Performance Features
+
 - Async I/O with Tokio
-- Comprehensive logging and metrics
+- Connection pooling
+- Configurable connection limits
+- Graceful shutdown handling
 
-## Prerequisites
+## Quick Start
 
-- Rust 1.70.0 or higher (install via [rustup](https://rustup.rs/))
-- Cargo (included with rustup)
-- Git
+1. Clone the repository:
 
-## Installation
+```bash
+git clone https://github.com/vedanshgoenka/rust-load-balancer.git
+cd rust-load-balancer
+```
 
-1. Install Rust and Cargo:
+1. Run the complete setup (load balancer, servers, and test load):
 
-   ```bash
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-   source $HOME/.cargo/env
-   ```
+```bash
+./start_all.sh
+```
 
-2. Clone the repository:
+1. Try different algorithms:
 
-   ```bash
-   git clone https://github.com/yourusername/rust_load_balancer.git
-   cd rust_load_balancer
-   ```
+```bash
+./start_all.sh --algorithm round-robin
+./start_all.sh --algorithm least-connections
+./start_all.sh --algorithm weighted-round-robin
+./start_all.sh --algorithm ip-hash
+```
 
-3. Build the project:
+## Component Scripts
 
-   ```bash
-   cargo build --release
-   ```
+- `start_all.sh`: Launches complete setup with load testing
+- `start_balancer.sh`: Starts only the load balancer
+- `start_server.sh`: Launches backend servers
+- `start_generator.sh`: Runs load testing
+- `start_client_server.sh`: Starts both client and server components
 
 ## Configuration
 
-Create a configuration file `config.json`:
+### Load Balancer
 
-```json
-{
-  "listen_address": "127.0.0.1:8080",
-  "backend_servers": [
-    "127.0.0.1:8081",
-    "127.0.0.1:8082"
-  ],
-  "health_check_interval": 30,
-  "health_check_timeout": 5
-}
-```
+- Port: Default 8000
+- Algorithms: round-robin, least-connections, weighted-round-robin, ip-hash
+- Connection limit: 500 concurrent connections
 
-## Usage
+### Backend Servers
 
-### Running the Load Balancer
+- Default ports: 8001-8020
+- Configurable response delays for GET/POST
+- Health check support
 
-Basic usage:
+### Load Generator
 
-```bash
-cargo run --release
-```
+- Configurable request count
+- Adjustable concurrent clients
+- GET/POST ratio control
 
-With custom configuration:
+## Metrics
 
-```bash
-cargo run --release -- --config path/to/config.json
-```
+Access metrics via:
 
-### Development Commands
+1. HTTP endpoint: `curl http://localhost:8000/metrics`
+2. Automatic display on Ctrl+C
+3. Final metrics after test completion
 
-Run tests:
+Example metrics output:
 
 ```bash
-cargo test                 # Run unit tests
-cargo test --test '*'     # Run integration tests
+127.0.0.1:8001: Active: 5, Total: 100, Success: 95, Rate: 95.0%
+127.0.0.1:8002: Weight: 8, Requests: 150, Distribution: 30.0%
 ```
 
-Generate documentation:
-
-```bash
-cargo doc --open
-```
-
-Run benchmarks:
-
-```bash
-cargo bench
-```
-
-Check code formatting:
-
-```bash
-cargo fmt -- --check
-```
-
-Run linter:
-
-```bash
-cargo clippy
-```
-
-## Crate Dependencies
-
-### Main Dependencies
-
-- **tokio** (1.28) - Asynchronous runtime
-  - Features: full (TCP, time, IO, etc.)
-  - Used for: Async network operations
-
-- **serde** (1.0) - Serialization framework
-  - Features: derive
-  - Used for: Config serialization/deserialization
-
-- **serde_json** (1.0) - JSON support
-  - Used for: Configuration file parsing
-
-- **thiserror** (1.0) - Error handling
-  - Used for: Custom error types
-
-- **tracing** (0.1) - Logging infrastructure
-  - Used for: Application logging
-
-- **tracing-subscriber** (0.3) - Logging implementation
-  - Used for: Log formatting and output
-
-- **config** (0.13) - Configuration management
-  - Used for: Loading and parsing config files
-
-- **clap** (4.2) - Command line parsing
-  - Features: derive
-  - Used for: CLI argument handling
-
-### Development Dependencies
+## Dependencies
 
 ```toml
-[dev-dependencies]
-criterion = "0.5"     # For benchmarking
-mockall = "0.11"      # For mocking in tests
+[dependencies]
+tokio = { version = "1.28", features = ["full"] }
+clap = { version = "4.2", features = ["derive"] }
+reqwest = { version = "0.11", features = ["json"] }
+futures = "0.3"
+rand = "0.8"
 ```
 
 ## Project Structure
@@ -150,83 +111,33 @@ mockall = "0.11"      # For mocking in tests
 ```txt
 rust_load_balancer/
 ├── src/
-│   ├── main.rs           # Application entry point
-│   ├── lib.rs            # Library entry point
-│   ├── balancer/         # Load balancing logic
-│   │   └── mod.rs
-│   ├── config/           # Configuration management
-│   │   └── mod.rs
-│   ├── health/           # Health checking
-│   │   └── mod.rs
-│   └── server/           # Backend server management
-│       └── mod.rs
-├── tests/                # Integration tests
-├── examples/             # Usage examples
-├── benches/              # Performance benchmarks
-└── docs/                # Additional documentation
+│   ├── main.rs           # Entry point
+│   ├── lib.rs           # Library exports
+│   ├── algorithms/      # Load balancing algorithms
+│   ├── balancer/       # Load balancer core
+│   ├── server/         # Backend server
+│   ├── client/         # Client implementation
+│   └── generator/      # Load generator
+├── scripts/
+│   ├── start_all.sh
+│   ├── start_balancer.sh
+│   ├── start_server.sh
+│   └── start_generator.sh
 ```
 
 ## Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Ensure tests pass (`cargo test`)
-4. Ensure code is formatted (`cargo fmt`)
-5. Ensure clippy is happy (`cargo clippy`)
-6. Commit your changes (`git commit -m 'Add some amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Troubleshooting
+## Authors
 
-### Common Issues
-
-1. **Compilation Errors**
-
-   ```bash
-   cargo clean
-   cargo build
-   ```
-
-2. **Permission Issues**
-
-   ```bash
-   chmod +x target/release/rust_load_balancer
-   ```
-
-3. **Port Already in Use**
-
-   ```bash
-   lsof -i :8080
-   kill -9 <PID>
-   ```
-
-## Performance Tuning
-
-For optimal performance:
-
-1. Always use release builds:
-
-   ```bash
-   cargo run --release
-   ```
-
-2. Enable logging levels appropriately:
-
-   ```bash
-   RUST_LOG=info cargo run --release
-   ```
-
-## Support
-
-For support, please:
-
-1. Check existing issues
-2. Create a new issue with:
-   - Rust version (`rustc --version`)
-   - OS details
-   - Minimal reproducible example
+- Richard Xue <xrichard@seas.upenn.edu>
+- Vedansh Goenka <vedanshg@seas.upenn.edu>
