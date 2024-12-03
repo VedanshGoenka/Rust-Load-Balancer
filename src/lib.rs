@@ -1,7 +1,6 @@
-//! Core load balancer library implementation
+//! Simple load balancer implementation
+pub mod algorithms;
 pub mod balancer;
 pub mod client;
-pub mod config;
-pub mod generator;
-pub mod health;
 pub mod server;
+pub mod generator;

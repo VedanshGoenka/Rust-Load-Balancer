@@ -1,101 +1,131 @@
 use crate::client::SenderClient;
 use clap::Parser;
-use tokio::task;
+use futures::future::join_all;
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
+use std::time::Instant;
 
 #[derive(Parser, Debug)]
-#[command(name = "Request Generator")]
+#[command(name = "Generator")]
 pub struct GeneratorArgs {
-    // url of Load Balancer/Server to send requests to
-    #[arg(short = 'u', long)]
+    #[arg(short = 'u', long, default_value = "http://127.0.0.1:8000")]
     pub url: String,
 
-    // Number of SenderClients
     #[arg(short = 'n', long, default_value = "10")]
-    pub num_clients: usize,
+    pub num_requests: usize,
 
-    // Ratio of Reads to Write Requests
-    #[arg(short = 'r', long, default_value = "0.5")]
-    pub read_write_ratio: f64,
+    #[arg(short = 'c', long, default_value = "5")]
+    pub concurrent_clients: usize,
+
+    #[arg(short = 'r', long, default_value = "0.7")]
+    pub get_ratio: f64,
 }
 
-/**
- * Creates a multi-threaded Generator to send requests in parallel for every SenderClient
- */
 pub struct Generator {
-    client_list: Vec<SenderClient>,
-    url: String
+    url: String,
+    num_clients: usize,
+    get_ratio: f64,
 }
 
 impl Generator {
-    pub fn new(url: &str, num_clients: usize) -> Generator {
-        let mut client_list = Vec::new();
-        for i in 0..num_clients {
-            client_list.push(SenderClient::new(&i.to_string(), url));
-        }
-
+    pub fn new(url: &str, num_clients: usize, get_ratio: f64) -> Self {
         Self {
-            client_list,
-            url: url.to_string()
+            url: url.to_string(),
+            num_clients,
+            get_ratio,
         }
     }
 
-    pub async fn run(self: std::sync::Arc<Self>, read_write_ratio: f64) {
-        // Start overall timing
-        let total_start = std::time::Instant::now();
+    async fn send_request(
+        client: SenderClient,
+        is_get: bool,
+        client_id: usize,
+        request_id: usize,
+        successful_requests: Arc<AtomicUsize>,
+    ) {
+        let result = if is_get {
+            client.get_read_request("").await
+        } else {
+            client
+                .post_write_request("", format!("test{}", client_id))
+                .await
+        };
 
-        let tasks: Vec<_> = self
-            .client_list
-            .iter()
-            .map(|client| {
+        match result {
+            Ok(_) => {
+                successful_requests.fetch_add(1, Ordering::Relaxed);
+                println!(
+                    "Client {} - {} request {} successful",
+                    client_id,
+                    if is_get { "GET" } else { "POST" },
+                    request_id
+                );
+            }
+            Err(e) => eprintln!(
+                "Client {} - {} request {} failed: {}",
+                client_id,
+                if is_get { "GET" } else { "POST" },
+                request_id,
+                e
+            ),
+        }
+    }
+
+    pub async fn run(&self, num_requests: usize) {
+        let successful_requests = Arc::new(AtomicUsize::new(0));
+
+        println!(
+            "Starting load test with {} clients, {} total requests ({:.0}% GET, {:.0}% POST)",
+            self.num_clients,
+            num_requests,
+            self.get_ratio * 100.0,
+            (1.0 - self.get_ratio) * 100.0
+        );
+
+        let start_time = Instant::now();
+        let requests_per_client = num_requests / self.num_clients;
+        let mut all_futures = Vec::new();
+
+        // Create all request futures upfront
+        for client_id in 0..self.num_clients {
+            let successful_requests = Arc::clone(&successful_requests);
+            let client = SenderClient::new(&client_id.to_string(), &self.url);
+
+            // Attempt to send request
+            for request_id in 0..requests_per_client {
+                let successful_requests = Arc::clone(&successful_requests);
+                let is_get = (request_id as f64 / requests_per_client as f64) < self.get_ratio;
                 let client = client.clone();
-                let url = self.url.clone();
-                task::spawn(async move {
-                    // Determine if Read or Write
-                    let is_read = rand::random::<f64>() < read_write_ratio;
 
-                    // Start timing
-                    let start_time = std::time::Instant::now();
+                let future = tokio::spawn(Self::send_request(
+                    client,
+                    is_get,
+                    client_id,
+                    request_id,
+                    successful_requests,
+                ));
 
-                    if is_read {
-                        match client.get_read_request(&url).await {
-                            Ok(_response) => {
-                                let duration = start_time.elapsed();
-                                println!(
-                                    "Client {} Read Response - Time: {:.2}ms",
-                                    client.id,
-                                    duration.as_secs_f64() * 1000.0
-                                )
-                            }
-                            Err(e) => eprintln!("Client {} Read Failed: {}", client.id, e),
-                        }
-                    } else {
-                        let body = format!("Client {} sending this Write with body", client.id);
-                        match client.post_write_request(&url, body).await {
-                            Ok(_response) => {
-                                let duration = start_time.elapsed();
-                                println!(
-                                    "Client {} Write Response - Time: {:.2}ms",
-                                    client.id,
-                                    duration.as_secs_f64() * 1000.0
-                                )
-                            }
-                            Err(e) => eprintln!("Client {} Write Failed: {}", client.id, e),
-                        }
-                    }
-                })
-            })
-            .collect();
-
-        for task in tasks {
-            let _ = task.await;
+                all_futures.push(future);
+            }
         }
 
-        // Calculate and print overall time
-        let total_elapsed = total_start.elapsed();
-        println!("Finished all tasks!");
+        // Run all requests concurrently
+        join_all(all_futures).await;
+
+        let duration = start_time.elapsed();
+        let successful = successful_requests.load(Ordering::Relaxed);
+        println!("Load test completed in {:?}", duration);
         println!(
-            "Total time for all requests: {:.2}ms", 
-            total_elapsed.as_secs_f64() * 1000.0
+            "Successful requests: {}/{} ({:.1}%)",
+            successful,
+            num_requests,
+            (successful as f64 / num_requests as f64) * 100.0
+        );
+        println!(
+            "Average request rate: {:.2} requests/second",
+            successful as f64 / duration.as_secs_f64()
         );
     }
 }
@@ -104,9 +134,6 @@ impl Generator {
 #[allow(dead_code)]
 async fn main() {
     let args = GeneratorArgs::parse();
-    let generator = Generator::new(&args.url, args.num_clients);
-    println!("Beginning Generator...");
-    std::sync::Arc::new(generator)
-        .run(args.read_write_ratio)
-        .await;
+    let generator = Generator::new(&args.url, args.concurrent_clients, args.get_ratio);
+    generator.run(args.num_requests).await;
 }
