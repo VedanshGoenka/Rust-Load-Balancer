@@ -99,24 +99,28 @@ impl LoadBalancingAlgorithm for Algorithm {
         }
     }
 
-    fn get_metrics(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output = HashMap<String, String>> + Send + 'static>> {
+    fn get_metrics(
+        &self,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = HashMap<String, String>> + Send + 'static>,
+    > {
         match self {
             Algorithm::RoundRobin(rr) => {
                 let rr = rr.clone();
                 Box::pin(async move { rr.get_metrics().await })
-            },
+            }
             Algorithm::LeastConnections(lc) => {
                 let lc = lc.clone();
                 Box::pin(async move { lc.get_metrics().await })
-            },
+            }
             Algorithm::WeightedRoundRobin(wrr) => {
                 let wrr = wrr.clone();
                 Box::pin(async move { wrr.get_metrics().await })
-            },
+            }
             Algorithm::IpHash(ih) => {
                 let ih = ih.clone();
                 Box::pin(async move { ih.get_metrics().await })
-            },
+            }
         }
     }
 }

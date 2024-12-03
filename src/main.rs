@@ -1,8 +1,8 @@
 //! Main entry point for the load balancer application
 use clap::Parser;
 use rust_load_balancer::balancer::LoadBalancer;
-use rust_load_balancer::server::Server;
 use rust_load_balancer::generator::{Generator, GeneratorArgs};
+use rust_load_balancer::server::Server;
 
 #[derive(Parser, Debug)]
 #[command(name = "Rust Load Balancer")]
@@ -40,15 +40,28 @@ enum Command {
 #[tokio::main]
 async fn main() {
     match Command::parse() {
-        Command::Balancer { port, servers, algorithm } => {
-            println!("Starting load balancer on port {} with servers: {:?}", port, servers);
+        Command::Balancer {
+            port,
+            servers,
+            algorithm,
+        } => {
+            println!(
+                "Starting load balancer on port {} with servers: {:?}",
+                port, servers
+            );
             println!("Using {} algorithm", algorithm);
             let balancer = LoadBalancer::new(port, servers, &algorithm);
             balancer.run().await;
         }
-        Command::Server { port, get_delay, post_delay } => {
-            println!("Starting server on port {} (GET delay: {}ms, POST delay: {}ms)", 
-                port, get_delay, post_delay);
+        Command::Server {
+            port,
+            get_delay,
+            post_delay,
+        } => {
+            println!(
+                "Starting server on port {} (GET delay: {}ms, POST delay: {}ms)",
+                port, get_delay, post_delay
+            );
             let server = Server::new(port, get_delay, post_delay);
             server.run().await;
         }

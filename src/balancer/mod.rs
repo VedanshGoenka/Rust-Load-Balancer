@@ -4,9 +4,9 @@ use std::sync::Arc;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
+    signal,
     sync::{RwLock, Semaphore},
     time::{interval, Duration},
-    signal,
 };
 
 const MAX_CONNECTIONS: usize = 500;
@@ -109,12 +109,16 @@ impl LoadBalancer {
         println!("Load balancer shutting down.");
     }
 
-    async fn forward_request(&self, mut client: TcpStream, server_addr: String) -> std::io::Result<()> {
+    async fn forward_request(
+        &self,
+        mut client: TcpStream,
+        server_addr: String,
+    ) -> std::io::Result<()> {
         // Read the request first
         let mut buffer = [0; 1024];
         let n = client.read(&mut buffer).await?;
         let request = String::from_utf8_lossy(&buffer[..n]);
-        
+
         // Check if it's a metrics request
         if request.contains("GET /metrics") {
             let metrics = self.algorithm.get_metrics().await;
@@ -122,7 +126,7 @@ impl LoadBalancer {
             for (server, metric) in metrics {
                 response.push_str(&format!("{}: {}\n", server, metric));
             }
-            
+
             let response = format!(
                 "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
                 response.len(),
