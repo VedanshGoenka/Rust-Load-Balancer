@@ -37,13 +37,13 @@ git clone https://github.com/vedanshgoenka/rust-load-balancer.git
 cd rust-load-balancer
 ```
 
-1. Run the complete setup (load balancer, servers, and test load):
+2. Run the complete setup (load balancer, servers, and test load):
 
 ```bash
 ./start_all.sh
 ```
 
-1. Try different algorithms:
+3. Try different algorithms:
 
 ```bash
 ./start_all.sh --algorithm round-robin
@@ -132,10 +132,6 @@ rust_load_balancer/
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Authors
 
