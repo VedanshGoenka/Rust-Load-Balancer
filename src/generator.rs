@@ -113,6 +113,7 @@ impl Generator {
 
         // Run all requests concurrently
         join_all(all_futures).await;
+        // Logging Code below not shown
 
         let duration = start_time.elapsed();
         let successful = successful_requests.load(Ordering::Relaxed);

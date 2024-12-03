@@ -483,7 +483,18 @@ impl LoadBalancingAlgorithm for IpHash {
                 return None;
             }
             // Using different IPs for testing distribution
-            let test_ips = ["192.168.1.1", "10.0.0.1", "172.16.0.1"];
+            let test_ips = [
+                "192.168.1.1",
+                "10.0.0.1",
+                "172.16.0.1",
+                "10.0.0.2",
+                "10.0.0.3",
+                "10.0.0.4",
+                "10.0.0.5",
+                "10.0.0.6",
+                "10.0.0.7",
+                "10.0.0.8",
+            ];
             let ip = test_ips[rand::thread_rng().gen_range(0..test_ips.len())];
             let hash = Self::hash(ip);
             let index = (hash % servers.len() as u64) as usize;
