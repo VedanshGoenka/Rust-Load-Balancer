@@ -44,7 +44,11 @@ impl SenderClient {
     pub async fn get_read_request(&self, endpoint: &str) -> Result<Response, Error> {
         let full_url = format!("{}/{}", self.url, endpoint);
         let client = self.client.clone();
-        Self::retry_request(MAX_RETRIES, || client.get(&full_url).send()).await
+        Self::retry_request(MAX_RETRIES, || {
+            client.get(&full_url)
+                .header("Connection", "close")
+                .send()
+        }).await
     }
 
     pub async fn post_write_request(
@@ -54,7 +58,12 @@ impl SenderClient {
     ) -> Result<Response, Error> {
         let full_url = format!("{}/{}", self.url, endpoint);
         let client = self.client.clone();
-        Self::retry_request(MAX_RETRIES, || client.post(&full_url).body(body.clone()).send())
+        Self::retry_request(MAX_RETRIES, || {
+            client.post(&full_url)
+                .header("Connection", "close")
+                .body(body.clone())
+                .send()
+        })
             .await
     }
 }

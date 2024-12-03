@@ -2,6 +2,7 @@ use crate::algorithms::{LoadBalancingAlgorithm, RoundRobin};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::{
+    io::AsyncWriteExt,
     net::{TcpListener, TcpStream},
     sync::{RwLock, Semaphore},
 };
@@ -56,7 +57,30 @@ impl LoadBalancer {
 
     async fn forward_request(mut client: TcpStream, server_addr: String) -> std::io::Result<()> {
         let mut server = TcpStream::connect(&server_addr).await?;
-        tokio::io::copy_bidirectional(&mut client, &mut server).await?;
+
+        // Split the streams for independent reading and writing
+        let (mut client_reader, mut client_writer) = client.split();
+        let (mut server_reader, mut server_writer) = server.split();
+
+        // Forward client request to server and wait for response
+        let client_to_server = tokio::io::copy(&mut client_reader, &mut server_writer);
+        let server_to_client = tokio::io::copy(&mut server_reader, &mut client_writer);
+
+        // Wait for both operations to complete
+        let (_client_bytes, server_bytes) = match tokio::join!(client_to_server, server_to_client) {
+            (Ok(c), Ok(s)) => (c, s),
+            _ => return Ok(()),
+        };
+
+        // Only shutdown after ensuring response is received (server_bytes > 0)
+        if server_bytes > 0 {
+            // Initiate graceful shutdown of client only
+            client.shutdown().await?;
+
+            // Close the connections completely
+            drop(client);
+        }
+
         Ok(())
     }
 }
