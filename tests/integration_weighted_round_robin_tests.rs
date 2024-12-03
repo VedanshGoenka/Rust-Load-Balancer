@@ -1,4 +1,4 @@
-use rust_load_balancer::algorithms::{LoadBalancingAlgorithm, RoundRobin};
+use rust_load_balancer::algorithms::{LoadBalancingAlgorithm, WeightedRoundRobin};
 use rust_load_balancer::{balancer::LoadBalancer, generator::Generator, server::Server};
 
 use std::sync::Arc;
@@ -28,7 +28,7 @@ async fn test_round_robin_no_timeout() {
         format!("127.0.0.1:{}", server_port1),
         format!("127.0.0.1:{}", server_port2),
     ];
-    let load_balancer = LoadBalancer::new(load_balancer_port, servers, "round-robin");
+    let load_balancer = LoadBalancer::new(load_balancer_port, servers, "weighted-round-robin");
     let load_balancer_handle = tokio::spawn(async move {
         load_balancer.run().await;
     });
@@ -61,7 +61,8 @@ async fn test_round_robin_no_timeout() {
 #[tokio::test]
 async fn test_round_robin_empty_server_list() {
     let servers: Vec<String> = vec![];
-    let round_robin = RoundRobin::new();
+    // Just use default
+    let round_robin = WeightedRoundRobin::new(None);
     let servers = Arc::new(RwLock::new(servers));
 
     let next_server = round_robin.next_server(&servers.read().await).await;
