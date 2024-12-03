@@ -1,4 +1,4 @@
-# Rust Load Balancer
+# Rust Load Balancer - CIS 1905 Final Project
 
 A high-performance HTTP load balancer implementation in Rust, featuring multiple load balancing strategies and detailed metrics tracking.
 

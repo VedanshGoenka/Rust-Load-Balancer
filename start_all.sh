@@ -9,6 +9,7 @@ GET_DELAY=200
 # POST request delay
 POST_DELAY=100
 # Load balancing algorithm
+# Available algorithms: round-robin, least-connections, ip-hash, weighted-round-robin
 LB_ALGORITHM="round-robin"
 
 # Test Loads
