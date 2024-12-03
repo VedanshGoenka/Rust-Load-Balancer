@@ -1,3 +1,4 @@
+use crate::algorithms::{LoadBalancingAlgorithm, RoundRobin};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::{
@@ -10,7 +11,7 @@ const MAX_CONNECTIONS: usize = 200;
 pub struct LoadBalancer {
     port: u16,
     servers: Arc<RwLock<Vec<String>>>,
-    current: Arc<RwLock<usize>>,
+    algorithm: RoundRobin,
     connection_limiter: Arc<Semaphore>,
 }
 
@@ -19,7 +20,7 @@ impl LoadBalancer {
         Self {
             port,
             servers: Arc::new(RwLock::new(servers)),
-            current: Arc::new(RwLock::new(0)),
+            algorithm: RoundRobin::new(),
             connection_limiter: Arc::new(Semaphore::new(MAX_CONNECTIONS)),
         }
     }
@@ -32,28 +33,29 @@ impl LoadBalancer {
         loop {
             let (client, _) = listener.accept().await.unwrap();
             let servers = Arc::clone(&self.servers);
-            let current = Arc::clone(&self.current);
-            let permit = Arc::clone(&self.connection_limiter).acquire_owned().await.unwrap();
+            let algorithm = self.algorithm.clone();
+            let permit = Arc::clone(&self.connection_limiter)
+                .acquire_owned()
+                .await
+                .unwrap();
 
             tokio::spawn(async move {
                 let server = {
                     let servers = servers.read().await;
-                    if servers.is_empty() {
-                        return;
+                    match algorithm.next_server(&servers).await {
+                        Some(server) => server,
+                        None => return,
                     }
-                    let mut current = current.write().await;
-                    *current = (*current + 1) % servers.len();
-                    servers[*current].clone()
                 };
 
-                let _ = Self::forward_request(client, &server).await;
+                let _ = Self::forward_request(client, server).await;
                 drop(permit);
             });
         }
     }
 
-    async fn forward_request(mut client: TcpStream, server_addr: &str) -> std::io::Result<()> {
-        let mut server = TcpStream::connect(server_addr).await?;
+    async fn forward_request(mut client: TcpStream, server_addr: String) -> std::io::Result<()> {
+        let mut server = TcpStream::connect(&server_addr).await?;
         tokio::io::copy_bidirectional(&mut client, &mut server).await?;
         Ok(())
     }
