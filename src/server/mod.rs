@@ -82,17 +82,18 @@ impl Server {
         }
 
         // Response message
-        let msg = format!("Request Recieved of type: {}", method);
-
-        // Send response
+        let msg = format!("Request Received of type: {}", method);
         let response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+            "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
             msg.len(),
             msg
         );
 
-        // Write response to socket
-        let _ = socket.write_all(response.as_bytes()).await;
+        // Write response and shutdown
+        if let Ok(()) = socket.write_all(response.as_bytes()).await {
+            let _ = socket.shutdown().await;
+        }
+        drop(socket);
     }
 }
 
