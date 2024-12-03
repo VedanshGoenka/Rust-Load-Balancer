@@ -8,6 +8,8 @@ NUM_SERVERS=20
 GET_DELAY=200
 # POST request delay
 POST_DELAY=100
+# Load balancing algorithm
+LB_ALGORITHM="round-robin"
 
 # Test Loads
 # Number of requests
@@ -45,6 +47,15 @@ cleanup() {
     
     echo "Cleanup complete."
 }
+
+# Parse command line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --algorithm) LB_ALGORITHM="$2"; shift ;;
+        *) echo "Unknown parameter: $1"; exit 1 ;;
+    esac
+    shift
+done
 
 # Clean up any existing processes before starting
 cleanup
@@ -87,7 +98,8 @@ for ((i=1; i<=NUM_SERVERS; i++)); do
     SERVER_LIST="${SERVER_LIST}127.0.0.1:$((LB_PORT + i))"
 done
 
-$BINARY balancer -p $LB_PORT -s "$SERVER_LIST" &
+echo "Using load balancing algorithm: $LB_ALGORITHM"
+$BINARY balancer -p $LB_PORT -s "$SERVER_LIST" -a "$LB_ALGORITHM" &
 
 # Wait for load balancer to start
 echo "Waiting for load balancer to initialize..."
@@ -110,5 +122,12 @@ $BINARY generator \
     -n $NUM_REQUESTS \
     -c $CONCURRENT_CLIENTS \
     -r $GET_RATIO
+
+# Sleep briefly to allow metrics to update
+sleep 1
+
+# Print final metrics
+echo -e "\nFinal Metrics:"
+curl -s "http://localhost:$LB_PORT/metrics" || echo "Failed to fetch metrics"
 
 echo "Test complete." 
