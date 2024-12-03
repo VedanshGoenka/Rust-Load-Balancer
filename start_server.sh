@@ -6,16 +6,15 @@ start_server() {
     local get_delay=$2
     local post_delay=$3
     echo "Starting server on port $port (GET delay: ${get_delay}ms, POST delay: ${post_delay}ms)"
-    cargo run -- server --port "$port" --get-delay "$get_delay" --post-delay "$post_delay" &
+    cargo run -- server -p "$port" -g "$get_delay" -o "$post_delay" &
 }
 
 # Default configurations for different servers
 # Format: "port get_delay post_delay"
 declare -a servers=(
-    "8000 0 0"         # No delay
-    "8001 1000 500"    # Fast server
-    "8002 2000 1000"   # Medium server
-    "8003 3000 1500"   # Slow server
+    "8001 100 200"    # Fast server
+    "8002 200 400"    # Medium server
+    "8003 300 600"    # Slow server
 )
 
 # Start all servers

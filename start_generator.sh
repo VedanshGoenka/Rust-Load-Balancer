@@ -1,33 +1,42 @@
 #!/bin/bash
 
 usage() {
-  echo "Usage: $0 --url <url> --num-clients <num_clients> --read-write-ratio <read_write_ratio>"
-  echo "  --url               The server URL to send requests to."
-  echo "  --num-clients       The number of clients to simulate."
-  echo "  --read-write-ratio  The read/write request ratio, in .% scale (e.g. 0.5, 1.0)"
-  exit 1
+    echo "Usage: $0 [options]"
+    echo "Options:"
+    echo "  -u, --url <url>              Load balancer URL (default: http://localhost:8000)"
+    echo "  -n, --num-requests <num>      Number of requests (default: 100)"
+    echo "  -c, --concurrent <num>        Number of concurrent clients (default: 5)"
+    echo "  -r, --ratio <ratio>           GET/POST ratio (default: 0.7)"
+    exit 1
 }
 
-# Default Args
-URL="http://localhost:8000/"
-NUM_CLIENTS=10
-READ_WRITE_RATIO=0.5
+# Default values
+URL="http://localhost:8000"
+NUM_REQUESTS=100
+CONCURRENT_CLIENTS=5
+GET_RATIO=0.7
 
-# Parse Command Line Args
+# Parse command line arguments
 while [[ "$#" -gt 0 ]]; do
-  case $1 in
-    --url) URL="$2"; shift ;;
-    --num-clients) NUM_CLIENTS="$2"; shift ;;
-    --read-write-ratio) READ_WRITE_RATIO="$2"; shift ;;
-    *) echo "Unknown parameter: $1"; usage ;;
-  esac
-  shift
+    case $1 in
+        -u|--url) URL="$2"; shift ;;
+        -n|--num-requests) NUM_REQUESTS="$2"; shift ;;
+        -c|--concurrent) CONCURRENT_CLIENTS="$2"; shift ;;
+        -r|--ratio) GET_RATIO="$2"; shift ;;
+        -h|--help) usage ;;
+        *) echo "Unknown parameter: $1"; usage ;;
+    esac
+    shift
 done
 
-# Validate URL provided
-if [[ -z "$URL" ]]; then
-  echo "Error: --url is required"
-  usage
-fi
+echo "Starting load generator..."
+echo "URL: $URL"
+echo "Total requests: $NUM_REQUESTS"
+echo "Concurrent clients: $CONCURRENT_CLIENTS"
+echo "GET ratio: $GET_RATIO"
 
-cargo run -- generator --url "$URL" --num-clients "$NUM_CLIENTS" --read-write-ratio "$READ_WRITE_RATIO"
+cargo run -- generator \
+    -u "$URL" \
+    -n "$NUM_REQUESTS" \
+    -c "$CONCURRENT_CLIENTS" \
+    -r "$GET_RATIO"
